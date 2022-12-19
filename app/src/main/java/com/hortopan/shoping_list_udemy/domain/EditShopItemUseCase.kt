@@ -1,8 +1,8 @@
 package com.hortopan.shoping_list_udemy.domain
 
-class EditShopItemUseCase {
+class EditShopItemUseCase(private val shopListRepository: ShopListRepository) {
 
-    fun editShopItemUseCase (shopItem: ShopItem){
-
+    fun editShopItem(shopItem: ShopItem){
+        shopListRepository.editShopItem(shopItem)
     }
 }
