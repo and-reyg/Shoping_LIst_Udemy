@@ -2,30 +2,13 @@ package com.hortopan.shoping_list_udemy.presentation
 
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
-import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.RecyclerView
+
+import androidx.recyclerview.widget.ListAdapter
 import com.hortopan.shoping_list_udemy.R
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 
-class ShopListAdapter() : RecyclerView.Adapter<ShopListAdapter.ShopItemViewHolder>(){
-
-    var shopList = listOf<ShopItem>()
-        set(value) {
-            //создаст обьект ShopListDiffCallback
-            val callback = ShopListDiffCallback(shopList, value) //shopList - старый список, value - новый
-            // .calculateDiff() произведет вычисления и вернет обьект diffResult.
-            //в этом обьекте лежат все изменения которые необходимо сделать адаптеру
-            val diffResult = DiffUtil.calculateDiff(callback)
-            //чтобы адаптер сделал изменения запустить dispatchUpdatesTo. (this - Это этот адаптер)
-            diffResult.dispatchUpdatesTo(this)
-            //присвоить shopList новое значение которое установили
-            field = value
-        }
-
+class ShopListAdapter() : ListAdapter<ShopItem, ShopItemViewHolder>(ShopItemDiffCallback()){
 
     //лямбда интерфейс, принимает ShopItem, ничего не возвращает, имеет тип null
     var onShopItemLongClickListener: ((ShopItem) -> Unit) ? = null
@@ -50,8 +33,9 @@ class ShopListAdapter() : RecyclerView.Adapter<ShopListAdapter.ShopItemViewHolde
     //реализует как вставить значения внутри этого View
     //будет вызван для абсолютно всех элементов списка
     override fun onBindViewHolder(viewHolder: ShopItemViewHolder, position: Int) {
-        //получаем элемент из коллекции
-        val shopItem = shopList[position]
+        //получаем элемент из коллекции (в новой версии из ListAdapter)
+        // getItem() - метод из класса ListAdapter
+        val shopItem = getItem(position)
         //устанавливаем слушатель нажатия (клика)
         viewHolder.view.setOnClickListener{
             onShopItemLongClickListener?.invoke(shopItem)
@@ -66,24 +50,13 @@ class ShopListAdapter() : RecyclerView.Adapter<ShopListAdapter.ShopItemViewHolde
 
     }
 
-    override fun onViewRecycled(viewHolder: ShopItemViewHolder) {
-        super.onViewRecycled(viewHolder)
-        viewHolder.tvName.text = ""
-        viewHolder.tvCount.text = ""
-        viewHolder.tvName.setTextColor(ContextCompat.getColor(viewHolder.view.context, android.R.color.white))
-
-    }
-
-    //возвращает количество елементов в колекции
-    override fun getItemCount(): Int {
-        return shopList.size
-    }
 
     //отвечает за определения типа view
     //вернет позицию элемента (у 0 элемента ViewType = 0, у 1 элемента ViewType = 1 и тд)
     override fun getItemViewType(position: Int): Int {
         //получение элемента
-        val item = shopList[position]
+        // getItem() - метод из класса ListAdapter
+        val item = getItem(position)
         return if(item.enabled){
             VIEW_TYPE_ENABLED
         }else{
@@ -92,16 +65,6 @@ class ShopListAdapter() : RecyclerView.Adapter<ShopListAdapter.ShopItemViewHolde
 
     }
 
-    // класс который хранит View
-    class ShopItemViewHolder(val view: View): RecyclerView.ViewHolder(view){
-        val tvName = view.findViewById<TextView>(R.id.tv_name)
-        val tvCount = view.findViewById<TextView>(R.id.tv_count)
-    }
-
-    interface OnShopItemLongClickListener{
-
-        fun onShopItemLongClick(shopItem: ShopItem)
-    }
 
     companion object{
 

@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this)[MainViewModel::class.java] // или точно такое же .get(MainViewModel::class.java)
         viewModel.shopList.observe(this){
             //присвоить адаптеру новый list
-            shopListAdapter.shopList = it
+            shopListAdapter.submitList(it)
         }
     }
 
@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             }
             //удвление элемента их списка, ведь при свайпе удалится жлемент
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val item = shopListAdapter.shopList[viewHolder.adapterPosition]
+                val item = shopListAdapter.currentList[viewHolder.adapterPosition]
                 viewModel.deleteShopItem(item)
             }
         }
