@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.hortopan.shoping_list_udemy.R
 import com.hortopan.shoping_list_udemy.domain.ShopItem
@@ -14,9 +15,17 @@ class ShopListAdapter() : RecyclerView.Adapter<ShopListAdapter.ShopItemViewHolde
 
     var shopList = listOf<ShopItem>()
         set(value) {
+            //создаст обьект ShopListDiffCallback
+            val callback = ShopListDiffCallback(shopList, value) //shopList - старый список, value - новый
+            // .calculateDiff() произведет вычисления и вернет обьект diffResult.
+            //в этом обьекте лежат все изменения которые необходимо сделать адаптеру
+            val diffResult = DiffUtil.calculateDiff(callback)
+            //чтобы адаптер сделал изменения запустить dispatchUpdatesTo. (this - Это этот адаптер)
+            diffResult.dispatchUpdatesTo(this)
+            //присвоить shopList новое значение которое установили
             field = value
-            notifyDataSetChanged()
         }
+
 
     //лямбда интерфейс, принимает ShopItem, ничего не возвращает, имеет тип null
     var onShopItemLongClickListener: ((ShopItem) -> Unit) ? = null
