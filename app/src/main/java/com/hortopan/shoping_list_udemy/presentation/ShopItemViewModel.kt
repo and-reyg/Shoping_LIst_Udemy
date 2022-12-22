@@ -1,5 +1,7 @@
 package com.hortopan.shoping_list_udemy.presentation
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.hortopan.shoping_list_udemy.data.ShopListRepositoryImpl
 import com.hortopan.shoping_list_udemy.domain.AddShopItemUseCase
@@ -16,8 +18,34 @@ class ShopItemViewModel: ViewModel() {
     private val addShopItemUseCase = AddShopItemUseCase(repository)
     private val editShopItemUseCase = EditShopItemUseCase(repository)
 
+    //livedata для передачи в активити true or false об ошибке
+    //в активти подпишемся на эту livedata и если значение true то будет показана ошибка
+    //С этой переменной работем только с ViewModel, так как переменная привтаная и ее можно менять
+    private val _errorInputName = MutableLiveData<Boolean>()
+    //С этой переменной работать с Активити
+    val errorInputName: LiveData<Boolean>
+        get() = _errorInputName
+
+    //тоже что и _errorInputName
+    private val _errorInputCount = MutableLiveData<Boolean>()
+    val errorInputCount: LiveData<Boolean>
+        get() = _errorInputCount
+
+    //С этой переменной работем только с ViewModel, так как переменная привтаная и ее можно менять
+    private val _shopItem = MutableLiveData<ShopItem>()
+    //С этой переменной работать с Активити
+    val shopItem: LiveData<ShopItem>
+        get() = _shopItem
+
+    //в _shouldCloseScreen всегда будет установлено true,
+    // нужно активити сообщить только то что нужно закрыть экран, поэтому тип будет не Boolean а Unit
+    private val _shouldCloseScreen = MutableLiveData<Unit>()
+    val shouldCloseScreen: LiveData<Unit>
+        get() = _shouldCloseScreen
+
     fun getShopItem(shopItemId: Int){
         val item = getShopItemUseCase.getShopItem(shopItemId)
+        _shopItem.value = item
     }
 
     //в конструкторе нулабельные переменные, на случай если юзер не введет значение
@@ -34,6 +62,8 @@ class ShopItemViewModel: ViewModel() {
             val shopItem = ShopItem(name, count, true)
             //добавить shopItem
             addShopItemUseCase.addShopItem(shopItem)
+            finishWork()
+
         }
 
     }
@@ -47,9 +77,16 @@ class ShopItemViewModel: ViewModel() {
         val fieldsValid = validateInput(name,count)
         //проверка на корректность, если корректно то добавить запись
         if(fieldsValid){
-            //создать обьект shopItem
-            val shopItem = ShopItem(name, count, true)
-            editShopItemUseCase.editShopItem(shopItem)
+            //получить обьект shopitem из liveData
+            //.let будет редактировать если _shopItem не равен null
+            _shopItem.value?.let {
+                //создать копию обьекта, и присвоить новые значения
+                val item = it.copy(name = name, count = count)
+                editShopItemUseCase.editShopItem(item)
+                finishWork()
+            }
+
+
         }
 
     }
@@ -75,16 +112,30 @@ class ShopItemViewModel: ViewModel() {
     private fun validateInput(name: String, count: Int): Boolean{
         var result = true
         if(name.isBlank()){
-            //TODO: show error input name
+            //запись в livedata что есть ошибка
+            _errorInputName.value = true
             result = false
         }
         if(count <= 0){
-            //TODO: show error input count
+            //запись в livedata что есть ошибка
+            _errorInputCount.value = true
             result  = false
         }
 
         return result
 
+    }
+
+    public fun resetErrorInputName(){
+        _errorInputName.value = false
+    }
+    public fun resetErrorInputCount(){
+        _errorInputName.value = false
+    }
+
+    //закрыть скрин после добавления иил редактирования
+    private fun finishWork(){
+        _shouldCloseScreen.value = Unit
     }
 
 
