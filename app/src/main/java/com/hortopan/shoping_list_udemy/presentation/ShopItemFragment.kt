@@ -16,10 +16,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.hortopan.shoping_list_udemy.R
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 
-class ShopItemFragment(
-    private val screenMode: String = MODE_UNKNOWN,
-    private val shopItemId: Int = ShopItem.UNDEFIND_ID
-): Fragment() {
+class ShopItemFragment: Fragment() {
 
     private lateinit var viewModel: ShopItemViewModel
 
@@ -30,8 +27,13 @@ class ShopItemFragment(
     private lateinit var etCount: EditText
     private lateinit var buttonSave: Button
 
-    //присвоится в parseIntent()
+    private var screenMode: String = MODE_UNKNOWN
+    private var shopItemId: Int = ShopItem.UNDEFIND_ID
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        parseParams()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -44,7 +46,6 @@ class ShopItemFragment(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        parseParams()
         viewModel = ViewModelProvider(this)[ShopItemViewModel::class.java]
         initViews(view)
         addTextChangeListeners()
@@ -80,7 +81,10 @@ class ShopItemFragment(
 
         //Если работа завершена то нужно закрыть экран
         viewModel.shouldCloseScreen.observe(viewLifecycleOwner){
-            finish()
+            //Обращается к активити к которому прикреплен этот фрагмент
+            //делает то же самое если бы юзер нажал кнопку назад
+            activity?.onBackPressed()
+            requireActivity()
         }
     }
 
@@ -138,11 +142,25 @@ class ShopItemFragment(
 
     //для опредиления в каком режиме работать (редактирование или добавление) проверка Intent
     private fun parseParams(){
-        if(screenMode != MODE_EDIT && screenMode != MODE_ADD){
+        val args = requireArguments()
+        // если аргумент не содержит параметр SCREEN_MODE то вівести исключения
+        if(!args.containsKey(SCREEN_MODE)){
             throw RuntimeException("Param screen mode is absent")
         }
-        if(screenMode == MODE_EDIT && shopItemId == ShopItem.UNDEFIND_ID){
-            throw RuntimeException("Param shop item id is absent")
+        val mode = args.getString(SCREEN_MODE)
+        if(mode != MODE_EDIT && mode != MODE_ADD){
+            throw RuntimeException("Unknown screen mode $mode")
+        }
+        screenMode = mode
+
+        //если mode редактирования, то нужно проверить есть ли id
+        //если мод равен редактированию и у интента нет поля ID
+        if(screenMode == MODE_EDIT){
+            if (!args.containsKey(SHOP_ITEM_ID)){
+                throw RuntimeException("Param shop item id is absent")
+            }
+            //обязательно вторым параметром передавать значения по умолчанию
+            shopItemId = args.getInt(SHOP_ITEM_ID, ShopItem.UNDEFIND_ID)
         }
     }
 
@@ -156,27 +174,36 @@ class ShopItemFragment(
 
     companion object{
 
-        private const val EXTRA_SCREEN_MODE = "extra_mode"
-        private const val EXTRA_SHOP_ITEM_ID = "extra_shop_item_id"
+        private const val SCREEN_MODE = "extra_mode"
+        private const val SHOP_ITEM_ID = "extra_shop_item_id"
         private const val MODE_EDIT = "mode_edit"
         private const val MODE_ADD = "mode_add"
         private const val MODE_UNKNOWN = ""
 
-        //создаст intent для запуска второго экрана в режиме добавлени
-        fun newIntentAddItem(context: Context): Intent {
-            val intent = Intent(context, ShopItemActivity::class.java)
-            intent.putExtra(EXTRA_SCREEN_MODE, MODE_ADD)
-            return intent
+        //Новый экземпляр фрагмента
+        //для подключения в ShopItemActivity Вернет фрагмент в режиме добавления
+        fun newInstanceAddItem(): ShopItemFragment{
+            //Сохранить в переменную args Новые значения через метод putString
+            //.apply пишется вместо args.putString просто putstring так как после apply{ } в скобках передается this.args
+            //Будет создан обьект ShopItem. Вызывается метод set arguments в который устанавливаются новые значения
+            return ShopItemFragment().apply {
+                arguments = Bundle().apply {
+                    putString(SCREEN_MODE, MODE_ADD)
+                }
+            }
+
         }
-        //создаст intent для запуска второго экрана в режиме редактирования
-        fun newIntentEditItem(context: Context, shopItemId: Int): Intent {
-            val intent = Intent(context, ShopItemActivity::class.java)
-            intent.putExtra(EXTRA_SCREEN_MODE, MODE_EDIT)
-            intent.putExtra(EXTRA_SHOP_ITEM_ID, shopItemId)
-            return intent
+
+        //Новый экземпляр фрагмента
+        //для подключения в ShopItemActivity Вернет фрагмент в режиме редактирования
+        fun newInstanceEditItem(shopItemId: Int): ShopItemFragment{
+
+            return ShopItemFragment().apply {
+                arguments = Bundle().apply {
+                    putString(SCREEN_MODE, MODE_EDIT)
+                    putInt(SHOP_ITEM_ID, shopItemId)
+                }
+            }
         }
-
-
-
     }
 }
