@@ -3,9 +3,13 @@ package com.hortopan.shoping_list_udemy.presentation
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.databinding.DataBindingUtil
+import androidx.databinding.ViewDataBinding
 
 import androidx.recyclerview.widget.ListAdapter
 import com.hortopan.shoping_list_udemy.R
+import com.hortopan.shoping_list_udemy.databinding.ItemShopDisabledBinding
+import com.hortopan.shoping_list_udemy.databinding.ItemShopEnabledBinding
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 
 class ShopListAdapter() : ListAdapter<ShopItem, ShopItemViewHolder>(ShopItemDiffCallback()){
@@ -25,9 +29,14 @@ class ShopListAdapter() : ListAdapter<ShopItem, ShopItemViewHolder>(ShopItemDiff
             else -> throw RuntimeException("Unknown viewType: $viewType")
         }
         //создаем view из макета
-        val view = LayoutInflater.from(parent.context).inflate(layout, parent, false)
+        val binding = DataBindingUtil.inflate<ViewDataBinding>(
+            LayoutInflater.from(parent.context),
+            layout,
+            parent,
+            false
+        )
         //возвращаем созданый обьект ShopItemViewHolder
-        return ShopItemViewHolder(view)
+        return ShopItemViewHolder(binding)
     }
 
     //реализует как вставить значения внутри этого View
@@ -36,18 +45,23 @@ class ShopListAdapter() : ListAdapter<ShopItem, ShopItemViewHolder>(ShopItemDiff
         //получаем элемент из коллекции (в новой версии из ListAdapter)
         // getItem() - метод из класса ListAdapter
         val shopItem = getItem(position)
+        val binding = viewHolder.binding
         //устанавливаем слушатель нажатия (клика)
-        viewHolder.view.setOnClickListener{
+        binding.root.setOnClickListener{
             onShopItemLongClickListener?.invoke(shopItem)
             true
         }
-        viewHolder.view.setOnClickListener{
+        binding.root.setOnClickListener{
             onShopItemClickListener?.invoke(shopItem)
         }
-        //у полученых TextView устанавливаем значения
-        viewHolder.tvName.text = shopItem.name
-        viewHolder.tvCount.text = shopItem.count.toString()
-
+        when(binding) {
+            is ItemShopDisabledBinding -> {
+                binding.shopItem = shopItem
+            }
+            is ItemShopEnabledBinding -> {
+                binding.shopItem = shopItem
+            }
+        }
     }
 
 

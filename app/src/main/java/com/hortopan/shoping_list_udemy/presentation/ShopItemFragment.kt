@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.textfield.TextInputLayout
 import com.hortopan.shoping_list_udemy.R
+import com.hortopan.shoping_list_udemy.databinding.FragmentShopItemBinding
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 
 class ShopItemFragment: Fragment() {
@@ -21,12 +22,9 @@ class ShopItemFragment: Fragment() {
     private lateinit var viewModel: ShopItemViewModel
     private lateinit var onEditingFinishListener: OnEditingFinishedListener
 
-    //til - Text Input Layout
-    private lateinit var tilName: TextInputLayout
-    private lateinit var tilCount: TextInputLayout
-    private lateinit var etName: EditText
-    private lateinit var etCount: EditText
-    private lateinit var buttonSave: Button
+    private var _binding: FragmentShopItemBinding? = null
+    private val binding: FragmentShopItemBinding
+        get() = _binding ?: throw RuntimeException("FragmentShopItemBinding == null")
 
     private var screenMode: String = MODE_UNKNOWN
     private var shopItemId: Int = ShopItem.UNDEFIND_ID
@@ -50,45 +48,22 @@ class ShopItemFragment: Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.fragment_shop_item, container, false)
+        _binding =  FragmentShopItemBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel = ViewModelProvider(this)[ShopItemViewModel::class.java]
-        initViews(view)
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
         addTextChangeListeners()
         launchRightMode()
         observeViewModel()
     }
 
     private fun observeViewModel(){
-        //если нужно отобразить сообщение об ошибке ввода Count
-        //в observer owner вместо this передается viewLifecycleOwner, это значит что будет
-        // следить не за жизненным циклом фрагмента, а за циклом жизни View
-        //И когда view умрет, то мы отпишемся от livedata, код внутри выполнятся не будет и краша не будет
-        viewModel.errorInputCount.observe(viewLifecycleOwner){
-            val message = if (it){
-                getString(R.string.error_input_count)
-            } else {
-                null
-            }
-            //если в message будет лежать строка то сообщение отобразиться, если null то нет
-            tilCount.error = message
-        }
-
-        //если нужно отобразить сообщение об ошибке ввода Name
-        viewModel.errorInputName.observe(viewLifecycleOwner){
-            val message = if (it){
-                getString(R.string.error_input_name)
-            } else {
-                null
-            }
-            //если в message будет лежать строка то сообщение отобразиться, если null то нет
-            tilName.error = message
-        }
-
         //Если работа завершена то нужно закрыть экран
         viewModel.shouldCloseScreen.observe(viewLifecycleOwner){
             //Обращается к активити к которому прикреплен этот фрагмент
@@ -107,7 +82,7 @@ class ShopItemFragment: Fragment() {
 
     private fun addTextChangeListeners(){
         //при вводе текста скрывать ошибку
-        etName.addTextChangedListener(object : TextWatcher {
+        binding.etName.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {  }
 
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
@@ -117,7 +92,7 @@ class ShopItemFragment: Fragment() {
 
         })
         //при вводе текста скрывать ошибку
-        etCount.addTextChangedListener(object : TextWatcher {
+        binding.etCount.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {  }
 
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
@@ -131,21 +106,18 @@ class ShopItemFragment: Fragment() {
     private fun launchEditMode(){
         //получение обьекта item (запись которую нужно редактировать)
         viewModel.getShopItem(shopItemId)
-        //получение пнеобходимых полей
-        viewModel.shopItem.observe(viewLifecycleOwner){
-            etName.setText(it.name)
-            etCount.setText(it.count.toString())
-        }
-        buttonSave.setOnClickListener {
+        binding.saveButton.setOnClickListener {
             //сохранение
-            viewModel.editShopItem(etName.text?.toString(), etCount.text?.toString())
+            viewModel.editShopItem(
+                binding.etName.text?.toString(),
+                binding.etCount.text?.toString())
         }
     }
 
     private fun launchAddMode(){
-        buttonSave.setOnClickListener {
+        binding.saveButton.setOnClickListener {
             //сохранение
-            viewModel.addShopItem(etName.text?.toString(), etCount.text?.toString())
+            viewModel.addShopItem(binding.etName.text?.toString(), binding.etCount.text?.toString())
         }
 
     }
@@ -174,13 +146,6 @@ class ShopItemFragment: Fragment() {
         }
     }
 
-    private fun initViews(view: View){
-        tilName = view.findViewById(R.id.til_name)
-        tilCount = view.findViewById(R.id.til_count)
-        etName = view.findViewById(R.id.et_name)
-        etCount = view.findViewById(R.id.et_count)
-        buttonSave = view.findViewById(R.id.save_button)
-    }
 
     interface OnEditingFinishedListener {
 
