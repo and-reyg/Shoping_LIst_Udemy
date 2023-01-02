@@ -15,16 +15,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.hortopan.shoping_list_udemy.R
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 
-class ShopItemActivity: AppCompatActivity() {
-
-    private lateinit var viewModel: ShopItemViewModel
-
-    //til - Text Input Layout
-    private lateinit var tilName: TextInputLayout
-    private lateinit var tilCount: TextInputLayout
-    private lateinit var etName: EditText
-    private lateinit var etCount: EditText
-    private lateinit var buttonSave: Button
+class ShopItemActivity: AppCompatActivity(), ShopItemFragment.OnEditingFinishedListener {
 
     //режим (редактирование или добавление) присвоится в методе parseIntent()
     private var screenMode = MODE_UNKNOWN
@@ -35,40 +26,16 @@ class ShopItemActivity: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_shop_item)
         parseIntent()
-        viewModel = ViewModelProvider(this)[ShopItemViewModel::class.java]
-        initViews()
-        addTextChangeListeners()
-        launchRightMode()
-        observeViewModel()
+        //Сделает что бы при перевороте экрана onCreate вызывалс только один раз
+        //если savedInstanceState равен null значит активити не пересоздавалось, то создать фрагмент
+        if(savedInstanceState == null){
+            launchRightMode()
+        }
+
     }
 
-    private fun observeViewModel(){
-        //если нужно отобразить сообщение об ошибке ввода Count
-        viewModel.errorInputCount.observe(this){
-            val message = if (it){
-                getString(R.string.error_input_count)
-            } else {
-                null
-            }
-            //если в message будет лежать строка то сообщение отобразиться, если null то нет
-            tilCount.error = message
-        }
-
-        //если нужно отобразить сообщение об ошибке ввода Name
-        viewModel.errorInputName.observe(this){
-            val message = if (it){
-                getString(R.string.error_input_name)
-            } else {
-                null
-            }
-            //если в message будет лежать строка то сообщение отобразиться, если null то нет
-            tilName.error = message
-        }
-
-        //Если работа завершена то нужно закрыть экран
-        viewModel.shouldCloseScreen.observe(this){
-            finish()
-        }
+    override fun onEditingFinished() {
+        finish()
     }
 
     private fun launchRightMode(){
@@ -78,55 +45,12 @@ class ShopItemActivity: AppCompatActivity() {
             else -> throw RuntimeException("Unknown screen mode $screenMode")
         }
         //чтобы в контейнере был фрагмент. add(id контейнера для фрагмента, сам фрагмент)
+        //метод .replace() удаляет старый фрагмент и создает новый(перезаписывает), благодаря этомуму методу
+        //в отличии от .add(), .replace() при поворотах єкрана не будет созвадвать новые обьекты
         //после всех транзакций в конце обязательо .commit - запустит транзакцию на выполнения
         supportFragmentManager.beginTransaction()
-            .add(R.id.shop_item_container, fragment)
+            .replace(R.id.shop_item_container, fragment)
             .commit()
-    }
-
-    private fun addTextChangeListeners(){
-        //при вводе текста скрывать ошибку
-        etName.addTextChangedListener(object : TextWatcher{
-            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {  }
-
-            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                viewModel.resetErrorInputName()
-            }
-            override fun afterTextChanged(p0: Editable?) { }
-
-        })
-        //при вводе текста скрывать ошибку
-        etCount.addTextChangedListener(object : TextWatcher{
-            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {  }
-
-            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
-                viewModel.resetErrorInputCount()
-            }
-            override fun afterTextChanged(p0: Editable?) { }
-
-        })
-    }
-
-    private fun launchEditMode(){
-        //получение обьекта item (запись которую нужно редактировать)
-        viewModel.getShopItem(shopItemId)
-        //получение пнеобходимых полей
-        viewModel.shopItem.observe(this){
-            etName.setText(it.name)
-            etCount.setText(it.count.toString())
-        }
-        buttonSave.setOnClickListener {
-            //сохранение
-            viewModel.editShopItem(etName.text?.toString(), etCount.text?.toString())
-        }
-    }
-
-    private fun launchAddMode(){
-        buttonSave.setOnClickListener {
-            //сохранение
-            viewModel.addShopItem(etName.text?.toString(), etCount.text?.toString())
-        }
-
     }
 
     //для опредиления в каком режиме работать (редактирование или добавление) проверка Intent
@@ -151,14 +75,6 @@ class ShopItemActivity: AppCompatActivity() {
             shopItemId = intent.getIntExtra(EXTRA_SHOP_ITEM_ID, ShopItem.UNDEFIND_ID)
         }
 
-    }
-
-    private fun initViews(){
-        tilName = findViewById(R.id.til_name)
-        tilCount = findViewById(R.id.til_count)
-        etName = findViewById(R.id.et_name)
-        etCount = findViewById(R.id.et_count)
-        buttonSave = findViewById(R.id.save_button)
     }
 
     companion object{

@@ -19,6 +19,7 @@ import com.hortopan.shoping_list_udemy.domain.ShopItem
 class ShopItemFragment: Fragment() {
 
     private lateinit var viewModel: ShopItemViewModel
+    private lateinit var onEditingFinishListener: OnEditingFinishedListener
 
     //til - Text Input Layout
     private lateinit var tilName: TextInputLayout
@@ -29,6 +30,15 @@ class ShopItemFragment: Fragment() {
 
     private var screenMode: String = MODE_UNKNOWN
     private var shopItemId: Int = ShopItem.UNDEFIND_ID
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnEditingFinishedListener) {
+            onEditingFinishListener = context
+        } else {
+            throw RuntimeException("Activity must implement OnEditingFinishedListener")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,9 +92,9 @@ class ShopItemFragment: Fragment() {
         //Если работа завершена то нужно закрыть экран
         viewModel.shouldCloseScreen.observe(viewLifecycleOwner){
             //Обращается к активити к которому прикреплен этот фрагмент
-            //делает то же самое если бы юзер нажал кнопку назад
-            activity?.onBackPressed()
-            requireActivity()
+            //ранее был код - делает то же самое если бы юзер нажал кнопку назад activity?.onBackPressed()
+            onEditingFinishListener.onEditingFinished()
+
         }
     }
 
@@ -170,6 +180,11 @@ class ShopItemFragment: Fragment() {
         etName = view.findViewById(R.id.et_name)
         etCount = view.findViewById(R.id.et_count)
         buttonSave = view.findViewById(R.id.save_button)
+    }
+
+    interface OnEditingFinishedListener {
+
+        fun onEditingFinished()
     }
 
     companion object{
