@@ -1,66 +1,41 @@
 package com.hortopan.shoping_list_udemy.data
 
+import android.app.Application
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
 import com.hortopan.shoping_list_udemy.domain.ShopItem
 import com.hortopan.shoping_list_udemy.domain.ShopListRepository
 
-object ShopListRepositoryImpl: ShopListRepository {
-    /**
-     * При реализации записи в базу данных нужно будет в функции подставлять методы которые
-     * к примеру в ф-ии addShopItem запишет в базу и так с каждым методом
-     */
+class ShopListRepositoryImpl(
+    application: Application
+): ShopListRepository {
 
-    //shopList LiveData
-    private val shopListLD = MutableLiveData<List<ShopItem>>()
-    private val shopList = sortedSetOf<ShopItem>({ p0, p1 -> p0.id.compareTo(p1.id) })
-    private var autoIncrementId = 0
+    private val shopListDao = AppDataBase.getInstance(application).shopListDao()
+    private val mapper = ShopListMapper()
 
-    init {
-        for (i in 0 until 10){
-            val item = ShopItem(
-                name = "Name $i",
-                count = i,
-                enabled = true
-            )
-            addShopItem(item)
-        }
+
+    override suspend fun addShopItem(shopItem: ShopItem) {
+        shopListDao.addShopItem(mapper.mapEntityToDbModel(shopItem))
     }
 
-    override fun addShopItem(shopItem: ShopItem) {
-        //если id равен -1, то установить правильный id
-        if(shopItem.id == ShopItem.UNDEFIND_ID){
-            shopItem.id = autoIncrementId++ //присвоит id значение autoIncrementId и потом увеличит autoIncrementId на 1
-        }
-        shopList.add(shopItem)
-        updateList()
+    override suspend fun deleteShopItem(shopItem: ShopItem) {
+        shopListDao.deleteShopItem(shopItem.id)
     }
 
-    override fun deleteShopItem(shopItem: ShopItem) {
-        shopList.remove(shopItem)
-        updateList()
+    override suspend fun editShopItem(shopItem: ShopItem) {
+        shopListDao.addShopItem(mapper.mapEntityToDbModel(shopItem))
     }
 
-    override fun editShopItem(shopItem: ShopItem) {
-        val oldElement = getShopItem(shopItem.id)
-        shopList.remove(oldElement)
-        addShopItem(shopItem)
+    override suspend fun getShopItem(shopItemId: Int): ShopItem {
+        val dbModel = shopListDao.getShopItem(shopItemId)
+        return mapper.mapDbModelToEntity(dbModel)
     }
-
-    override fun getShopItem(shopItemId: Int): ShopItem {
-        //может вернутся null поєтому написали обработку
-        return shopList.find { it.id == shopItemId }
-            ?: throw RuntimeException("Element with id $shopItemId not found")
-    }
-
-    override fun getShopList(): LiveData<List<ShopItem>> {
-        //правильно всегда возвращать не саму коллекцию, а ее копию
-        //так с основной колекцией ничего сделать не смогут
-        return shopListLD
-    }
-
-    private fun updateList(){
-        //вернем копию листа
-        shopListLD.value = shopList.toList()
+    //Transformations.map ( первый аргумент источник данных) { второй - ф-ия которая будет обрабатывать первый аргумент }
+    override fun getShopList(): LiveData<List<ShopItem>> = Transformations.map(
+        shopListDao.getShopList()
+    ) {
+        mapper.mapListDbModelToListEntity(it)
     }
 }
